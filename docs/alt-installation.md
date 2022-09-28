@@ -199,7 +199,7 @@ To remove earthly, run the following commands:
 
 ```bash
 brew uninstall earthly
-rm -rf ~/.earthly
+rm -rf ~/.earthly "${XDG_STATE_HOME:-$HOME/.local/state}/earthly"
 docker rm --force earthly-buildkitd
 docker volume rm --force earthly-cache
 ```
@@ -210,7 +210,7 @@ docker volume rm --force earthly-cache
 rm /usr/local/bin/earthly
 rm /usr/share/bash-completion/completions/earthly
 rm /usr/local/share/zsh/site-functions/_earthly
-rm -rf ~/.earthly
+rm -rf ~/.earthly "${XDG_STATE_HOME:-$HOME/.local/state}/earthly"
 docker rm --force earthly-buildkitd
 docker volume rm --force earthly-cache
 ```

@@ -1,7 +1,17 @@
 #!/bin/bash
 set -e
 
-bindir="$HOME/.earthly"
+get_earthly_dir() {
+  legacy_earthly_dir="$HOME/.earthly"
+  new_earthly_dir="${XDG_STATE_HOME:-$HOME/.local/state}/earthly"
+
+  if [ -d "$legacy_earthly_dir" ]; then
+    printf '%s\n' "$legacy_earthly_dir"
+  else
+    printf '%s\n' "$new_earthly_dir"
+  fi
+}
+bindir=$(get_earthly_dir)
 if [ ! -d "$bindir" ]; then
   mkdir -p "$bindir"
 fi

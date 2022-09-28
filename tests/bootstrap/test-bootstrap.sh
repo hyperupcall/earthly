@@ -3,19 +3,31 @@
 set -ue
 set -o pipefail
 
-cd "$(dirname "$0")"
+get_earthly_dir() {
+  legacy_earthly_dir="$HOME/.earthly"
+  new_earthly_dir="${XDG_STATE_HOME:-$HOME/.local/state}/earthly"
 
+  if [[ ! -d "$legacy_earthly_dir" && ! -d "$new_earthly_dir" ]]; then
+    echo ".earthly directory was missing after bootstrap"
+    exit 1
+  fi
+
+  if [ -d "$legacy_earthly_dir" ]; then
+    printf '%s\n' "$legacy_earthly_dir"
+  else
+    printf '%s\n' "$new_earthly_dir"
+  fi
+}
+
+cd "$(dirname "$0")"
 earthly=${earthly-"../../build/linux/amd64/earthly"}
 earthly=$(realpath "$earthly")
+earthly_dir=$(get_earthly_dir)
 
 echo "=== Test 1: Hand Bootstrapped ==="
 
 "$earthly" bootstrap
 
-if [[ ! -d "$HOME/.earthly" ]]; then
-  echo ".earthly directory was missing after bootstrap"
-  exit 1
-fi
 
 echo "----"
 "$earthly" +test | tee hand_boot_output # Hand boots are gloves ;)
@@ -25,14 +37,14 @@ if  cat hand_boot_output | grep -q "bootstrap |"; then
     exit 1
 fi
 
-rm -rf "$HOME/.earthly/"
+rm -rf "${earthly_dir:?}/"
 
 echo "=== Test 2: Implied Bootstrap ==="
 
 "$earthly" +test
 
-if [[ ! -d "$HOME/.earthly" ]]; then
-  echo ".earthly directory was missing after bootstrap"
+if [[ ! -d "$earthly_dir" ]]; then
+  echo "$earthly_dir directory was missing after bootstrap"
   exit 1
 fi
 
@@ -44,14 +56,14 @@ if  cat imp_boot_output | grep -q "bootstrap |"; then
     exit 1
 fi
 
-rm -rf "$HOME/.earthly/"
+rm -rf "${earthly_dir:?}/"
 
 echo "=== Test 3: CI ==="
 
 "$earthly" --ci +test
 
-if [[ ! -d "$HOME/.earthly" ]]; then
-  echo ".earthly directory was missing after bootstrap"
+if [[ ! -d "$earthly_dir" ]]; then
+  echo "$earthly_dir directory was missing after bootstrap"
   exit 1
 fi
 
@@ -63,7 +75,7 @@ if  cat ci_boot_output | grep -q "bootstrap |"; then
     exit 1
 fi
 
-rm -rf "$HOME/.earthly/"
+rm -rf "${earthly_dir:?}/"
 
 echo "=== Test 4: With Autocomplete ==="
 
@@ -82,7 +94,7 @@ if [[ ! -f "/usr/share/bash-completion/completions/earthly" ]]; then
   exit 1
 fi
 
-rm -rf "$HOME/.earthly/"
+rm -rf "${earthly_dir:?}/"
 sudo rm -rf "/usr/share/bash-completion/completions/earthly"
 
 echo "=== Test 5: Permissions ==="
@@ -97,45 +109,45 @@ echo "Group: $GRP"
 
 "$earthly" bootstrap
 
-if [[ $(stat --format '%U' "$HOME/.earthly") != "$USR" ]]; then
+if [[ $(stat --format '%U' "$earthly_dir") != "$USR" ]]; then
   echo "earthly directory is not owned by the user"
-  stat "$HOME/.earthly"
+  stat "$earthly_dir"
   exit 1
 fi
 
-if [[ $(stat --format '%G' "$HOME/.earthly") != "$GRP" ]]; then
+if [[ $(stat --format '%G' "$earthly_dir") != "$GRP" ]]; then
   echo "earthly directory is not owned by the users group"
-  stat "$HOME/.earthly"
+  stat "$earthly_dir"
   exit 1
 fi
 
 echo "----"
-touch $HOME/.earthly/config.yml
-sudo chown -R 12345:12345 $HOME/.earthly
+touch "$earthly_dir/config.yml"
+sudo chown -R 12345:12345 "$earthly_dir"
 
 sudo "$earthly" bootstrap
 
-if [[ $(stat --format '%U' "$HOME/.earthly") != "$USR" ]]; then
+if [[ $(stat --format '%U' "$earthly_dir") != "$USR" ]]; then
   echo "earthly directory is not owned by the user"
-  stat "$HOME/.earthly"
+  stat "$earthly_dir"
   exit 1
 fi
 
-if [[ $(stat --format '%G' "$HOME/.earthly") != "$GRP" ]]; then
+if [[ $(stat --format '%G' "$earthly_dir") != "$GRP" ]]; then
   echo "earthly directory is not owned by the users group"
-  stat "$HOME/.earthly"
+  stat "$earthly_dir"
   exit 1
 fi
 
-if [[ $(stat --format '%U' "$HOME/.earthly/config.yml") != "$USR" ]]; then
+if [[ $(stat --format '%U' "$earthly_dir/config.yml") != "$USR" ]]; then
   echo "earthly config is not owned by the user"
-  stat "$HOME/.earthly/config.yml"
+  stat "$earthly_dir/config.yml"
   exit 1
 fi
 
-if [[ $(stat --format '%G' "$HOME/.earthly/config.yml") != "$GRP" ]]; then
+if [[ $(stat --format '%G' "$earthly_dir/config.yml") != "$GRP" ]]; then
   echo "earthly config is not owned by the users group"
-  stat "$HOME/.earthly/config.yml"
+  stat "$earthly_dir/config.yml"
   exit 1
 fi
 
@@ -191,7 +203,7 @@ if ! DOCKER_HOST="docker is missing" "$earthly" bootstrap --source zsh > /dev/nu
   exit 1
 fi
 
-rm -rf "$HOME/.earthly/"
+rm -rf "${earthly_dir:?}/"
 
 echo "=== Test 8: No Buildkit ==="
 
@@ -206,4 +218,4 @@ if ! DOCKER_HOST="docker is missing" "$earthly" bootstrap --no-buildkit; then
   exit 1
 fi
 
-rm -rf "$HOME/.earthly/"
+rm -rf "${earthly_dir:?}/"

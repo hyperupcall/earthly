@@ -21,3 +21,4 @@ test -z "${SSH_AUTH_SOCK:-}"
 
 # make sure tests start without a config
 rm -f ~/.earthly/config.yml
+rm -f "${XDG_STATE_HOME:-$HOME/.local/state}/earthly/config.yml"

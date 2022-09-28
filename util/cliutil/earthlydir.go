@@ -28,8 +28,19 @@ func GetEarthlyDir() string {
 
 func getEarthlyDirAndUser() (string, *user.User) {
 	homeDir, u := fileutil.HomeDir()
-	earthlyDir := filepath.Join(homeDir, ".earthly")
-	return earthlyDir, u
+	legacyEarthlyDir := filepath.Join(homeDir, ".earthly")
+
+	exists, _ := fileutil.DirExists(legacyEarthlyDir)
+	if exists {
+		return legacyEarthlyDir, u
+	}
+
+	xdgConfigHome := os.Getenv("XDG_STATE_HOME")
+	if xdgConfigHome[0] == '/' {
+		return filepath.Join(xdgConfigHome, "earthly"), u
+	}
+
+	return filepath.Join(homeDir, ".local", "state", "earthly"), u
 }
 
 // GetOrCreateEarthlyDir returns the .earthly dir. (Usually ~/.earthly).
